@@ -1,0 +1,6 @@
+@CryptoViz.Api_HostAddress = http://localhost:5276
+
+GET {{CryptoViz.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

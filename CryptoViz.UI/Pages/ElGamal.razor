@@ -1,0 +1,325 @@
+@page "/elgamal"
+@using System.Numerics
+@inject CryptoViz.Core.Brokers.Maths.IMathBroker MathBroker
+@inject IElGamalService ElGamalService
+@inject ISnackbar Snackbar
+
+<PageTitle>Standard ElGamal</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Color="Color.Primary" GutterBottom="true">Standard ElGamal Vizuallashtirish</MudText>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Dark">
+        <!-- 1. Kalit Yaratish -->
+        <MudTabPanel Text="1. Kalitlarni Yaratish" Icon="@Icons.Material.Filled.VpnKey">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudCard Elevation="3">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">Parametrlarni Kiritish</MudText>
+                            <MudTextField @bind-Value="InputP" Label="P (Tub son)" Variant="Variant.Outlined" Class="mt-3" Immediate="true" Validation="@ValidatePrime" />
+                            <MudTextField @bind-Value="InputG" Label="G (Generator)" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudTextField @bind-Value="InputX" Label="x (Yashirin Kalit - ixtiyoriy)" HelperText="Bo'sh qoldirsangiz tasodifiy tanlanadi" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="GenerateKeys" FullWidth="true">
+                                Kalitlarni Yaratish
+                            </MudButton>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    @if (KeyPair != null)
+                    {
+                        <MudCard Elevation="3" Class="bg-dark">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Color="Color.Info">Natija (Kalitlar Juftligi)</MudText>
+                                <MudDivider Class="my-2"/>
+                                <MudText><b>Yashirin Kalit (x):</b> <span style="color:#ff5252">@KeyPair.PrivateKey</span></MudText>
+                                <MudText Class="mt-2"><b>Ochiq Kalit (h):</b> <span style="color:#69f0ae">@KeyPair.PublicKey</span></MudText>
+                                <MudAlert Severity="Severity.Success" Class="mt-4">Formula: h = g^x mod p => @KeyPair.PublicKey = @KeyPair.G^@KeyPair.PrivateKey mod @KeyPair.P</MudAlert>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <!-- 2. Shifrlash -->
+        <MudTabPanel Text="2. Shifrlash" Icon="@Icons.Material.Filled.EnhancedEncryption" Disabled="@(KeyPair == null)">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudCard Elevation="3">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">Ochiq Matn (M)</MudText>
+                            <MudSwitch @bind-Value="IsTextMode" Label="Matn sifatida kiritish (Gap yoki so'z)" Color="Color.Primary" />
+                            @if(IsTextMode)
+                            {
+                                <MudTextField @bind-Value="InputStringMessage" Label="Matn" Variant="Variant.Outlined" Class="mt-3" Immediate="true" />
+                            }
+                            else
+                            {
+                                <MudTextField @bind-Value="InputMessage" Label="M (Matn soni)" Variant="Variant.Outlined" Class="mt-3" />
+                            }
+                            <MudTextField @bind-Value="InputK" Label="k (Tasodifiy son - ixtiyoriy)" HelperText="Bo'sh qoldirsangiz tasodifiy tanlanadi" Variant="Variant.Outlined" Class="mt-3" />
+                            
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" OnClick="Encrypt" FullWidth="true">
+                                Shifrlash
+                            </MudButton>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    @if (Ciphertext != null && !IsTextMode)
+                    {
+                        <MudCard Elevation="3">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Color="Color.Warning">Natija (Shifr Matn)</MudText>
+                                <MudDivider Class="my-2"/>
+                                <MudText><b>C1:</b> <span style="color:#b388ff">@Ciphertext.C1</span></MudText>
+                                <MudText Class="mt-2"><b>C2:</b> <span style="color:#b388ff">@Ciphertext.C2</span></MudText>
+                                <MudAlert Severity="Severity.Warning" Class="mt-4">
+                                    C1 = g^k mod p<br/>
+                                    C2 = M * h^k mod p
+                                </MudAlert>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                    else if (TextCiphertexts != null && TextCiphertexts.Any() && IsTextMode)
+                    {
+                        <MudCard Elevation="3">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Color="Color.Warning">Natija (Matn bloklari)</MudText>
+                                <MudDivider Class="my-2"/>
+                                <div style="max-height: 250px; overflow-y: auto;">
+                                @foreach(var item in TextCiphertexts)
+                                {
+                                    <MudText Class="mb-2">
+                                        <b>Harf [@item.Letter] (kodi: @((int)item.Letter)):</b> 
+                                        C1=<span style="color:#b388ff">@item.Cipher.C1</span>, 
+                                        C2=<span style="color:#b388ff">@item.Cipher.C2</span>
+                                    </MudText>
+                                }
+                                </div>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <!-- 3. Deshifrlash -->
+        <MudTabPanel Text="3. Deshifrlash" Icon="@Icons.Material.Filled.NoEncryption">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudCard Elevation="3">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">Parametrlarni Qo'lda Kiritish</MudText>
+                            <MudText Typo="Typo.caption" Class="mb-3">Universitet masalalaridagi qiymatlarni kiriting.</MudText>
+                            <MudTextField @bind-Value="DecryptP" Label="P (Modul)" Variant="Variant.Outlined" Class="mt-2" />
+                            <MudTextField @bind-Value="DecryptX" Label="x (Yashirin kalit)" Variant="Variant.Outlined" Class="mt-2" />
+                            <MudTextField @bind-Value="DecryptC1" Label="C1" Variant="Variant.Outlined" Class="mt-2" />
+                            <MudTextField @bind-Value="DecryptC2" Label="C2" Variant="Variant.Outlined" Class="mt-2" />
+                            
+                            <MudButton Variant="Variant.Filled" Color="Color.Success" Class="mt-4" OnClick="ManualDecrypt" FullWidth="true">
+                                Bitta Sondi Deshifrlash
+                            </MudButton>
+
+                            @if (IsTextMode && TextCiphertexts.Any())
+                            {
+                                <MudButton Variant="Variant.Outlined" Color="Color.Info" Class="mt-2" OnClick="AutoDecryptText" FullWidth="true">
+                                    Butun matnni avtomat deshifrlash
+                                </MudButton>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    @if (DecryptedMessage != null)
+                    {
+                        <MudCard Elevation="3" Class="mb-4">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h5" Color="Color.Success">Asl Matn Soni (M): <span style="color:#4fc3f7">@DecryptedMessage</span></MudText>
+                                @if(!string.IsNullOrEmpty(DecryptedText) && !IsTextMode)
+                                {
+                                    <MudText Typo="Typo.h6" Color="Color.Primary" Class="mt-2">Matn ko'rinishi: <span style="color:#ffb74d">@DecryptedText</span></MudText>
+                                }
+                                <MudAlert Severity="Severity.Info" Class="mt-4">
+                                    Qadamlar:<br/>
+                                    1. s = C1^x mod p = @DecryptC1^@DecryptX mod @DecryptP<br/>
+                                    2. Teskari element: s^-1 mod p<br/>
+                                    3. M = C2 * s^-1 mod p = @DecryptedMessage
+                                </MudAlert>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                    
+                    @if (IsTextMode && !string.IsNullOrEmpty(DecryptedText) && DecryptedMessage == null)
+                    {
+                        <MudCard Elevation="3">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h5" Color="Color.Success">To'liq Asl Matn:</MudText>
+                                <MudText Typo="Typo.h4" Color="Color.Primary" Class="mt-2"><span style="color:#ffb74d">@DecryptedText</span></MudText>
+                                <MudAlert Severity="Severity.Info" Class="mt-4">
+                                    Barcha C1 va C2 juftliklari harfma-harf deshifrlandi va birlashtirildi.
+                                </MudAlert>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@code {
+    private string InputP = "1009"; // Kichik harflar sig'ishi uchun kattaroq modul
+    private string InputG = "11";
+    private string InputX = "";
+    
+    private string InputMessage = "15";
+    private string InputStringMessage = "";
+    private string InputK = "";
+    
+    private bool IsTextMode = false;
+    private string DecryptedText;
+
+    private string DecryptP;
+    private string DecryptX;
+    private string DecryptC1;
+    private string DecryptC2;
+
+    public class TextBlock
+    {
+        public char Letter { get; set; }
+        public ElGamalCiphertext Cipher { get; set; }
+    }
+
+    private ElGamalKeyPair KeyPair;
+    private ElGamalCiphertext Ciphertext;
+    private List<TextBlock> TextCiphertexts = new();
+    private BigInteger? DecryptedMessage;
+
+    private string ValidatePrime(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "Bo'sh bo'lishi mumkin emas";
+        if (BigInteger.TryParse(value, out BigInteger p))
+        {
+            if (!MathBroker.IsPrime(p)) return "Bu tub son emas! Boshqa son kiriting.";
+            return null;
+        }
+        return "Faqat raqam kiriting";
+    }
+
+    private void GenerateKeys()
+    {
+        try
+        {
+            BigInteger p = BigInteger.Parse(InputP);
+            BigInteger g = BigInteger.Parse(InputG);
+            BigInteger? x = string.IsNullOrWhiteSpace(InputX) ? null : BigInteger.Parse(InputX);
+
+            KeyPair = ElGamalService.GenerateKeys(p, g, x);
+            Ciphertext = null;
+            TextCiphertexts.Clear();
+            DecryptedMessage = null;
+            DecryptedText = null;
+            Snackbar.Add("Kalitlar muvaffaqiyatli yaratildi!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Xatolik: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private void Encrypt()
+    {
+        try
+        {
+            BigInteger? k = string.IsNullOrWhiteSpace(InputK) ? null : BigInteger.Parse(InputK);
+            TextCiphertexts.Clear();
+
+            if (IsTextMode)
+            {
+                if (string.IsNullOrEmpty(InputStringMessage)) throw new ArgumentException("Matn kiriting!");
+                
+                foreach (char c in InputStringMessage)
+                {
+                    BigInteger m = new BigInteger((int)c);
+                    if (m >= KeyPair.P) throw new ArgumentException($"'{c}' harfining son qiymati ({m}) P ({KeyPair.P}) dan katta bo'lishi mumkin emas! P ni kattaroq qilib oling.");
+                    
+                    TextCiphertexts.Add(new TextBlock { Letter = c, Cipher = ElGamalService.Encrypt(m, KeyPair, k) });
+                }
+                
+                if (TextCiphertexts.Any())
+                {
+                    DecryptP = KeyPair.P.ToString();
+                    DecryptX = KeyPair.PrivateKey.ToString();
+                    DecryptC1 = TextCiphertexts.First().Cipher.C1.ToString();
+                    DecryptC2 = TextCiphertexts.First().Cipher.C2.ToString();
+                }
+                Snackbar.Add("Matn harfma-harf shifrlandi!", Severity.Warning);
+            }
+            else
+            {
+                BigInteger m = BigInteger.Parse(InputMessage);
+                Ciphertext = ElGamalService.Encrypt(m, KeyPair, k);
+                
+                DecryptP = KeyPair.P.ToString();
+                DecryptX = KeyPair.PrivateKey.ToString();
+                DecryptC1 = Ciphertext.C1.ToString();
+                DecryptC2 = Ciphertext.C2.ToString();
+                
+                Snackbar.Add("Xabar shifrlandi! Deshifrlash tabiga o'ting.", Severity.Warning);
+            }
+            
+            DecryptedMessage = null;
+            DecryptedText = null;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Xatolik: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private void ManualDecrypt()
+    {
+        try
+        {
+            BigInteger p = BigInteger.Parse(DecryptP);
+            BigInteger x = BigInteger.Parse(DecryptX);
+            BigInteger c1 = BigInteger.Parse(DecryptC1);
+            BigInteger c2 = BigInteger.Parse(DecryptC2);
+
+            var tempKeyPair = new ElGamalKeyPair { P = p, PrivateKey = x };
+            var tempCipher = new ElGamalCiphertext { C1 = c1, C2 = c2 };
+
+            DecryptedMessage = ElGamalService.Decrypt(tempCipher, tempKeyPair);
+            DecryptedText = null;
+            
+            Snackbar.Add("Bitta son (blok) muvaffaqiyatli deshifrlandi!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Xatolik: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private void AutoDecryptText()
+    {
+        try
+        {
+            string result = "";
+            foreach (var item in TextCiphertexts)
+            {
+                var charCode = ElGamalService.Decrypt(item.Cipher, KeyPair);
+                result += (char)(int)charCode;
+            }
+            DecryptedText = result;
+            DecryptedMessage = null;
+            Snackbar.Add("To'liq matn qayta tiklandi!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Xatolik: " + ex.Message, Severity.Error);
+        }
+    }
+}

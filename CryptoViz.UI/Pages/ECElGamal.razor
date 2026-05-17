@@ -1,0 +1,242 @@
+@page "/ec-elgamal"
+@using System.Numerics
+@inject CryptoViz.Core.Brokers.Maths.IMathBroker MathBroker
+@inject IECElGamalService ECElGamalService
+@inject ISnackbar Snackbar
+
+<PageTitle>EC-ElGamal</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Color="Color.Secondary" GutterBottom="true">Elliptik Egri Chiziqli ElGamal (EC-ElGamal)</MudText>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Dark">
+        <MudTabPanel Text="1. Parametrlar & Kalitlar" Icon="@Icons.Material.Filled.VpnKey">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudCard Elevation="3">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">Egri chiziq: y² = x³ + Ax + B mod P</MudText>
+                            <MudTextField @bind-Value="InputP" Label="P (Tub son modul)" Variant="Variant.Outlined" Class="mt-3" Immediate="true" Validation="@ValidatePrime" />
+                            <MudTextField @bind-Value="InputA" Label="A" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudTextField @bind-Value="InputB" Label="B" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudText Typo="Typo.subtitle2" Class="mt-3">Boshlang'ich nuqta G(x, y):</MudText>
+                            <MudTextField @bind-Value="InputGx" Label="G x" Variant="Variant.Outlined" Class="mt-1" />
+                            <MudTextField @bind-Value="InputGy" Label="G y" Variant="Variant.Outlined" Class="mt-1" />
+                            <MudTextField @bind-Value="InputD" Label="d (Yashirin Kalit - ixtiyoriy)" HelperText="Bo'sh qoldirilsa tasodifiy olinadi" Variant="Variant.Outlined" Class="mt-3" />
+                            
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="GenerateKeys" FullWidth="true">
+                                Kalitlarni Yaratish
+                            </MudButton>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    @if (KeyPair != null)
+                    {
+                        <MudCard Elevation="3" Class="bg-dark">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Color="Color.Info">Natija (Kalitlar Juftligi)</MudText>
+                                <MudDivider Class="my-2"/>
+                                <MudText><b>Yashirin Kalit (d):</b> <span style="color:#ff5252">@KeyPair.PrivateKey</span></MudText>
+                                <MudText Class="mt-2"><b>Ochiq Kalit Q(x, y):</b> <span style="color:#69f0ae">(@KeyPair.PublicKey.X, @KeyPair.PublicKey.Y)</span></MudText>
+                                <MudAlert Severity="Severity.Success" Class="mt-4">
+                                    Q = d * G (Nuqtani skalyar ko'paytirish qoidasi bo'yicha)
+                                </MudAlert>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="2. Shifrlash" Icon="@Icons.Material.Filled.EnhancedEncryption" Disabled="@(KeyPair == null)">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudCard Elevation="3">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">Ochiq Matn Nuqtasi M(x, y)</MudText>
+                            <MudTextField @bind-Value="InputMx" Label="M x" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudTextField @bind-Value="InputMy" Label="M y" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudTextField @bind-Value="InputK" Label="k (Tasodifiy son - ixtiyoriy)" HelperText="Bo'sh qoldirsangiz tasodifiy tanlanadi" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" OnClick="Encrypt" FullWidth="true">
+                                Shifrlash
+                            </MudButton>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    @if (Ciphertext != null)
+                    {
+                        <MudCard Elevation="3">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6" Color="Color.Warning">Shifr Nuqtalar Juftligi</MudText>
+                                <MudDivider Class="my-2"/>
+                                <MudText><b>C1 (x, y):</b> <span style="color:#b388ff">(@Ciphertext.C1.X, @Ciphertext.C1.Y)</span></MudText>
+                                <MudText Class="mt-2"><b>C2 (x, y):</b> <span style="color:#b388ff">(@Ciphertext.C2.X, @Ciphertext.C2.Y)</span></MudText>
+                                <MudAlert Severity="Severity.Warning" Class="mt-4">
+                                    C1 = k * G<br/>
+                                    C2 = M + k * Q
+                                </MudAlert>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="3. Deshifrlash" Icon="@Icons.Material.Filled.NoEncryption">
+            <MudGrid>
+                <MudItem xs="12" md="5">
+                    <MudCard Elevation="3">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">Parametrlarni Qo'lda Kiritish</MudText>
+                            <MudText Typo="Typo.caption" Class="mb-2">Masaladagi ma'lumotlarni kiriting:</MudText>
+                            <MudTextField @bind-Value="DecryptP" Label="P (Modul)" Variant="Variant.Outlined" Class="mt-2" />
+                            <MudTextField @bind-Value="DecryptA" Label="A (Egri chiziq A)" Variant="Variant.Outlined" Class="mt-2" />
+                            <MudTextField @bind-Value="DecryptD" Label="d (Yashirin kalit)" Variant="Variant.Outlined" Class="mt-2" />
+                            
+                            <MudText Typo="Typo.subtitle2" Class="mt-3">C1 Nuqtasi:</MudText>
+                            <div class="d-flex gap-2">
+                                <MudTextField @bind-Value="DecryptC1x" Label="C1 x" Variant="Variant.Outlined" />
+                                <MudTextField @bind-Value="DecryptC1y" Label="C1 y" Variant="Variant.Outlined" />
+                            </div>
+                            
+                            <MudText Typo="Typo.subtitle2" Class="mt-3">C2 Nuqtasi:</MudText>
+                            <div class="d-flex gap-2">
+                                <MudTextField @bind-Value="DecryptC2x" Label="C2 x" Variant="Variant.Outlined" />
+                                <MudTextField @bind-Value="DecryptC2y" Label="C2 y" Variant="Variant.Outlined" />
+                            </div>
+
+                            <MudButton Variant="Variant.Filled" Color="Color.Success" Class="mt-4" OnClick="ManualDecrypt" FullWidth="true">
+                                Deshifrlash
+                            </MudButton>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                <MudItem xs="12" md="7">
+                    @if (DecryptedPoint != null)
+                    {
+                        <MudCard Elevation="3">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h5" Color="Color.Success">Asl Matn Nuqtasi M: <span style="color:#4fc3f7">(@DecryptedPoint.X, @DecryptedPoint.Y)</span></MudText>
+                                <MudAlert Severity="Severity.Info" Class="mt-4">
+                                    Qadamlar:<br/>
+                                    1. d * C1 nuqtasini topish<br/>
+                                    2. M = C2 - d * C1 = C2 + (-d * C1)
+                                </MudAlert>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@code {
+    private string InputP = "17";
+    private string InputA = "2";
+    private string InputB = "2";
+    private string InputGx = "5";
+    private string InputGy = "1";
+    private string InputD = "";
+    
+    private string InputMx = "9";
+    private string InputMy = "16";
+    private string InputK = "";
+
+    // Decrypt parameters
+    private string DecryptP;
+    private string DecryptA;
+    private string DecryptD;
+    private string DecryptC1x;
+    private string DecryptC1y;
+    private string DecryptC2x;
+    private string DecryptC2y;
+
+    private ECElGamalKeyPair KeyPair;
+    private ECElGamalCiphertext Ciphertext;
+    private ECPoint DecryptedPoint;
+
+    private string ValidatePrime(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "Bo'sh bo'lishi mumkin emas";
+        if (BigInteger.TryParse(value, out BigInteger p))
+        {
+            if (!MathBroker.IsPrime(p)) return "Bu tub son emas! Boshqa son kiriting.";
+            return null;
+        }
+        return "Faqat raqam kiriting";
+    }
+
+    private void GenerateKeys()
+    {
+        try
+        {
+            BigInteger p = BigInteger.Parse(InputP);
+            BigInteger a = BigInteger.Parse(InputA);
+            BigInteger b = BigInteger.Parse(InputB);
+            BigInteger? d = string.IsNullOrWhiteSpace(InputD) ? null : BigInteger.Parse(InputD);
+            ECPoint g = new ECPoint { X = BigInteger.Parse(InputGx), Y = BigInteger.Parse(InputGy), IsInfinity = false };
+            
+            KeyPair = ECElGamalService.GenerateKeys(p, a, b, g, d);
+            Ciphertext = null;
+            DecryptedPoint = null;
+            Snackbar.Add("EC Kalitlar muvaffaqiyatli yaratildi!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Xatolik: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private void Encrypt()
+    {
+        try
+        {
+            BigInteger? k = string.IsNullOrWhiteSpace(InputK) ? null : BigInteger.Parse(InputK);
+            ECPoint m = new ECPoint { X = BigInteger.Parse(InputMx), Y = BigInteger.Parse(InputMy), IsInfinity = false };
+            
+            Ciphertext = ECElGamalService.Encrypt(m, KeyPair, k);
+            DecryptedPoint = null;
+
+            // Qo'lda kiritish tabiga ma'lumotlarni o'tkazib qo'yamiz
+            DecryptP = KeyPair.P.ToString();
+            DecryptA = KeyPair.A.ToString();
+            DecryptD = KeyPair.PrivateKey.ToString();
+            DecryptC1x = Ciphertext.C1.X.ToString();
+            DecryptC1y = Ciphertext.C1.Y.ToString();
+            DecryptC2x = Ciphertext.C2.X.ToString();
+            DecryptC2y = Ciphertext.C2.Y.ToString();
+
+            Snackbar.Add("EC Xabar shifrlandi! 3-tabdan deshifrlash parametrlari kirildi.", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Xatolik: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private void ManualDecrypt()
+    {
+        try
+        {
+            BigInteger p = BigInteger.Parse(DecryptP);
+            BigInteger a = BigInteger.Parse(DecryptA);
+            BigInteger d = BigInteger.Parse(DecryptD);
+            
+            ECPoint c1 = new ECPoint { X = BigInteger.Parse(DecryptC1x), Y = BigInteger.Parse(DecryptC1y), IsInfinity = false };
+            ECPoint c2 = new ECPoint { X = BigInteger.Parse(DecryptC2x), Y = BigInteger.Parse(DecryptC2y), IsInfinity = false };
+
+            var tempKeyPair = new ECElGamalKeyPair { P = p, A = a, PrivateKey = d };
+            var tempCiphertext = new ECElGamalCiphertext { C1 = c1, C2 = c2 };
+
+            DecryptedPoint = ECElGamalService.Decrypt(tempCiphertext, tempKeyPair);
+            Snackbar.Add("EC Deshifrlash muvaffaqiyatli yakunlandi!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Xatolik: " + ex.Message, Severity.Error);
+        }
+    }
+}

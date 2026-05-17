@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CryptoViz.Api/CryptoViz.Api.csproj" />
+  <Project Path="CryptoViz.Core/CryptoViz.Core.csproj" />
+  <Project Path="CryptoViz.UI/CryptoViz.UI.csproj" />
+</Solution>

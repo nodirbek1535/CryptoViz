@@ -1,0 +1,53 @@
+@page "/"
+
+<PageTitle>CryptoViz - Asosiy Oyna</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true" Color="Color.Primary">Kriptografik Vizuallashtirish</MudText>
+    <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-12">
+        ElGamal va Elliptik Egri Chiziqqa Asoslangan ElGamal (EC-ElGamal) algoritmlarini interaktiv o'rganish muhiti.
+    </MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="4" Class="pa-4" Style="height: 100%;">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h5" Color="Color.Success">Standard ElGamal</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="Color.Success" Size="Size.Large" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText>
+                        Chekli maydonlar (Finite Fields) va diskret logarifmlash muammosi asosida ishlovchi klassik assimetrik kriptografik algoritm. Bu yerda siz modulli arifmetikani qadamma-qadam ko'rishingiz mumkin.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/elgamal" Variant="Variant.Filled" Color="Color.Success" FullWidth="true">Boshlash</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="4" Class="pa-4" Style="height: 100%;">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h5" Color="Color.Secondary">EC-ElGamal</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudIcon Icon="@Icons.Material.Filled.ShowChart" Color="Color.Secondary" Size="Size.Large" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText>
+                        Elliptik egri chiziq nuqtalari ustida ishlovchi (Elliptic Curve Cryptography) zamonaviy va kuchli shifrlash usuli. Bitcoin va ko'plab zamonaviy tizimlar asosini tashkil etadi.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/ec-elgamal" Variant="Variant.Filled" Color="Color.Secondary" FullWidth="true">Boshlash</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
