@@ -55,8 +55,8 @@
                     <MudCard Elevation="3">
                         <MudCardContent>
                             <MudText Typo="Typo.h6">Ochiq Matn Nuqtasi M(x, y)</MudText>
-                            <MudTextField @bind-Value="InputMx" Label="M x" Variant="Variant.Outlined" Class="mt-3" />
-                            <MudTextField @bind-Value="InputMy" Label="M y" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudTextField @bind-Value="InputMx" Label="M x" Variant="Variant.Outlined" Class="mt-3" InputType="InputType.Number" />
+                            <MudTextField @bind-Value="InputMy" Label="M y" Variant="Variant.Outlined" Class="mt-3" InputType="InputType.Number" HelperText="M(x,y) tanlangan egri chiziqda yotishi kerak: y² ≡ x³ + Ax + B (mod P)" />
                             <MudTextField @bind-Value="InputK" Label="k (Tasodifiy son - ixtiyoriy)" HelperText="Bo'sh qoldirsangiz tasodifiy tanlanadi" Variant="Variant.Outlined" Class="mt-3" />
                             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" OnClick="Encrypt" FullWidth="true">
                                 Shifrlash
