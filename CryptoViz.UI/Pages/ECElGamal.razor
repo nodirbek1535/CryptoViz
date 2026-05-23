@@ -55,8 +55,11 @@
                     <MudCard Elevation="3">
                         <MudCardContent>
                             <MudText Typo="Typo.h6">Ochiq Matn Nuqtasi M(x, y)</MudText>
-                            <MudTextField @bind-Value="InputMx" Label="M x" Variant="Variant.Outlined" Class="mt-3" />
-                            <MudTextField @bind-Value="InputMy" Label="M y" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudTextField @bind-Value="InputMx" Label="M x" Variant="Variant.Outlined" Class="mt-3" InputType="InputType.Number" />
+                            <MudTextField @bind-Value="InputMy" Label="M y" Variant="Variant.Outlined" Class="mt-3" InputType="InputType.Number" HelperText="M(x,y) tanlangan egri chiziqda yotishi kerak: y² ≡ x³ + Ax + B (mod P)" />
+                            <MudButton Variant="Variant.Outlined" Color="Color.Info" Class="mt-2" OnClick="GenerateMessagePoint" FullWidth="true">
+                                Mos M(x, y) Generate
+                            </MudButton>
                             <MudTextField @bind-Value="InputK" Label="k (Tasodifiy son - ixtiyoriy)" HelperText="Bo'sh qoldirsangiz tasodifiy tanlanadi" Variant="Variant.Outlined" Class="mt-3" />
                             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" OnClick="Encrypt" FullWidth="true">
                                 Shifrlash
@@ -233,6 +236,69 @@
 
             DecryptedPoint = ECElGamalService.Decrypt(tempCiphertext, tempKeyPair);
             Snackbar.Add("EC Deshifrlash muvaffaqiyatli yakunlandi!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Xatolik: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private void GenerateMessagePoint()
+    {
+        try
+        {
+            if (KeyPair is null)
+            {
+                throw new ArgumentException("Avval 1-tabda kalitlarni yarating.");
+            }
+
+            BigInteger p = KeyPair.P;
+            BigInteger a = KeyPair.A;
+            BigInteger b = KeyPair.B;
+
+            List<ECPoint> candidates = new();
+            for (BigInteger x = 0; x < p; x++)
+            {
+                BigInteger rhs = ((x * x * x) + (a * x) + b) % p;
+                if (rhs < 0) rhs += p;
+
+                for (BigInteger y = 0; y < p; y++)
+                {
+                    BigInteger lhs = (y * y) % p;
+                    if (lhs < 0) lhs += p;
+
+                    if (lhs == rhs)
+                    {
+                        candidates.Add(new ECPoint { X = x, Y = y, IsInfinity = false });
+                    }
+                }
+            }
+
+            if (!candidates.Any())
+            {
+                throw new ArgumentException("Bu parametrlar uchun egri chiziqda nuqta topilmadi.");
+            }
+
+            int firstIndex = Random.Shared.Next(candidates.Count);
+            int secondIndex = Random.Shared.Next(candidates.Count);
+
+            if (candidates.Count > 1)
+            {
+                while (secondIndex == firstIndex)
+                {
+                    secondIndex = Random.Shared.Next(candidates.Count);
+                }
+            }
+
+            ECPoint firstPoint = candidates[firstIndex];
+            ECPoint secondPoint = candidates[secondIndex];
+
+            InputMx = firstPoint.X.ToString();
+            InputMy = firstPoint.Y.ToString();
+
+            Snackbar.Add(
+                $"Mos nuqtalar: M1=({firstPoint.X}, {firstPoint.Y}), M2=({secondPoint.X}, {secondPoint.Y}). Hozir M1 formaga qo'yildi.",
+                Severity.Info);
         }
         catch (Exception ex)
         {
