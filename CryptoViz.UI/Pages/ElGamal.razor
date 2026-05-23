@@ -19,7 +19,7 @@
                             <MudText Typo="Typo.h6">Parametrlarni Kiritish</MudText>
                             <MudTextField @bind-Value="InputP" Label="P (Tub son)" Variant="Variant.Outlined" Class="mt-3" Immediate="true" Validation="@ValidatePrime" />
                             <MudTextField @bind-Value="InputG" Label="G (Generator)" Variant="Variant.Outlined" Class="mt-3" />
-                            <MudTextField @bind-Value="InputX" Label="x (Yashirin Kalit - ixtiyoriy)" HelperText="Bo'sh qoldirsangiz tasodifiy tanlanadi" Variant="Variant.Outlined" Class="mt-3" />
+                            <MudTextField @bind-Value="InputX" Label="x (Yashirin Kalit - ixtiyoriy)" HelperText="Bo'sh qoldirsangiz tasodifiy tanlanadi" Variant="Variant.Outlined" Class="mt-3" InputType="InputType.Number" />
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="GenerateKeys" FullWidth="true">
                                 Kalitlarni Yaratish
                             </MudButton>

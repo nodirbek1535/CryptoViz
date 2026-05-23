@@ -21,6 +21,11 @@ namespace CryptoViz.Core.Services.Foundations.ECElGamals
             {
                 throw new ArgumentException($"Kiritilgan P ({p}) tub son emas! EC-ElGamal xavfsizligi uchun P albatta tub son bo'lishi shart.");
             }
+            
+            if (!IsPointOnCurve(g, a, b, p))
+            {
+                throw new ArgumentException("G nuqta tanlangan egri chiziqda yotmaydi. G(x,y) uchun y² ≡ x³ + Ax + B (mod P) bo'lishi shart.");
+            }
 
             // d ni tanlaymiz (yashirin kalit) - qo'lda yoki tasodifiy
             BigInteger d = customD ?? this.mathBroker.GenerateRandomBigInteger(2, p - 1);
@@ -41,6 +46,11 @@ namespace CryptoViz.Core.Services.Foundations.ECElGamals
 
         public ECElGamalCiphertext Encrypt(ECPoint messagePoint, ECElGamalKeyPair keyPair, BigInteger? customK = null)
         {
+            if (!IsPointOnCurve(messagePoint, keyPair.A, keyPair.B, keyPair.P))
+            {
+                throw new ArgumentException("M nuqta tanlangan egri chiziqda yotmaydi. M(x,y) uchun y² ≡ x³ + Ax + B (mod P) bo'lishi shart.");
+            }
+
             // k tasodifiy yoki qo'lda kiritilgan son
             BigInteger k = customK ?? this.mathBroker.GenerateRandomBigInteger(2, keyPair.P - 1);
 
@@ -75,6 +85,22 @@ namespace CryptoViz.Core.Services.Foundations.ECElGamals
             ECPoint messagePoint = this.ecMathBroker.AddPoints(ciphertext.C2, minusDc1, keyPair.A, keyPair.P);
 
             return messagePoint;
+        }
+
+        private static bool IsPointOnCurve(ECPoint point, BigInteger a, BigInteger b, BigInteger p)
+        {
+            if (point.IsInfinity)
+            {
+                return true;
+            }
+
+            BigInteger left = BigInteger.Remainder(point.Y * point.Y, p);
+            if (left < 0) left += p;
+
+            BigInteger right = BigInteger.Remainder((point.X * point.X * point.X) + (a * point.X) + b, p);
+            if (right < 0) right += p;
+
+            return left == right;
         }
     }
 }
